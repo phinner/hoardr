@@ -28,6 +28,17 @@ pnpm dev:firefox # or pnpm dev:chrome
 Open the extension popup, enter the server URL and token, then reload your X
 tabs. The popup's **Sync now** button uploads anything still pending.
 
+## Docker
+
+```sh
+docker build -t hoardr .
+docker run -d --name hoardr -p 3000:3000 -v hoardr-data:/data hoardr
+docker exec hoardr hoardr token create --name browser --kind owner
+```
+
+The `hoardr` command is also the image entrypoint. For a one-off command, run
+`docker run --rm -v hoardr-data:/data hoardr token list`.
+
 ## Connect an agent
 
 Use **Connect an agent** in the popup, or print a setup command from the CLI:
