@@ -280,10 +280,12 @@ export function App(props: {
           <Credentials state={props.server} />
         </Show>
       </Show>
-      <div class="toasts">
-        <p role="alert" class="toast error" hidden={!props.server.error()}>
+      <Show when={props.server.error()}>
+        <p role="alert" class="issue">
           {props.server.error()}
         </p>
+      </Show>
+      <div class="toasts">
         <p role="status" class="toast" hidden={!props.server.notice()}>
           {props.server.notice()}
         </p>
