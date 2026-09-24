@@ -4,7 +4,7 @@ Hoardr collects the X content you consume for your agent.
 
 Allowing you to obtain useful information from posts and comments you saw.
 
-> ![Warning]
+> [!Warning]
 >
 > Still WIP and has no pruning mechanism yet. But it only collects text so it's fine :)
 
