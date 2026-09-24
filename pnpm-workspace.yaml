@@ -1,0 +1,6 @@
+allowBuilds:
+  esbuild: true
+  tesseract.js: false
+
+minimumReleaseAgeExclude:
+  - "@types/node@24.13.6"

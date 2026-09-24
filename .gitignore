@@ -1,0 +1,14 @@
+node_modules/
+.wxt/
+.output/
+dist/
+build/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+.idea/
+
+.fallow/
+/data/
+

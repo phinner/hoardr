@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>hoardr popup preview</title>
+    <link rel="icon" href="/icons/icon.svg">
+    <style>
+    html {
+      background: #8884;
+    }
+    body {
+      display: grid;
+      place-items: start center;
+      padding: 24px;
+    }
+    #app {
+      width: fit-content;
+      height: 600px;
+      scrollbar-gutter: stable;
+      overflow-y: auto;
+      box-shadow: 0 8px 30px #0005;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+{
+  "name": "hoardr",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "bin": {
+    "hoardr": "build/cli.js"
+  },
+  "scripts": {
+    "dev:chrome": "wxt -b chrome --mv3",
+    "dev:firefox": "wxt -b firefox --mv3",
+    "dev:server": "tsx watch src/server/cli.ts serve",
+    "preview": "vite --config preview/vite.config.ts",
+    "hoardr": "tsx src/server/cli.ts",
+    "build": "pnpm build:extension && pnpm build:server",
+    "build:extension": "wxt build -b chrome --mv3 && wxt build -b firefox --mv3",
+    "build:server": "esbuild src/server/cli.ts --bundle --platform=node --target=node24 --format=esm --packages=external --outfile=build/cli.js",
+    "start": "node build/cli.js serve",
+    "zip": "wxt zip -b chrome --mv3 && wxt zip -b firefox --mv3",
+    "typecheck": "wxt prepare && tsc --noEmit",
+    "format": "biome check --write .",
+    "format:check": "biome ci .",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck",
+    "fallow": "fallow"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.0.0-rc.116",
+    "@effect/sql-sqlite-node": "4.0.0-rc.116",
+    "@solidjs/web": "2.0.0-rc.9",
+    "effect": "4.0.0-rc.116",
+    "idb": "8.0.3",
+    "sharp": "0.35.4",
+    "solid-js": "2.0.0-rc.9",
+    "tesseract.js": "7.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@solidjs/vite-plugin": "3.0.0-next.35",
+    "@types/node": "24.13.6",
+    "esbuild": "0.28.2",
+    "fallow": "3.27.0",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vite": "8.3.0",
+    "wxt": "0.21.4"
+  }
+}

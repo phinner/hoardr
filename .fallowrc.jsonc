@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  "minimumVersion": "3.27.0",
+  // WXT's plugin only looks in `entrypoints/`. The popup preview is a Vite root
+  // no script names directly, and it reaches `browser.ts` through an alias.
+  "entry": [
+    "src/extension/entrypoints/**/*.{ts,tsx,html}",
+    "preview/index.html",
+    "preview/vite.config.ts",
+    "preview/browser.ts"
+  ],
+  "health": {
+    "maxCyclomatic": 12,
+    "maxCognitive": 15,
+    "maxUnitSize": 60,
+    // Fallow estimates coverage from imports rather than runtime evidence.
+    // Keep that estimate advisory below the structural complexity ceiling.
+    "maxCrap": 200
+  },
+  "boundaries": {
+    "zones": [
+      { "name": "shared", "patterns": ["src/shared/**"] },
+      { "name": "extension", "patterns": ["src/extension/**"] },
+      { "name": "server", "patterns": ["src/server/**"] }
+    ],
+    "rules": [
+      { "from": "shared", "allow": ["shared"] },
+      { "from": "extension", "allow": ["extension", "shared"] },
+      { "from": "server", "allow": ["server", "shared"] }
+    ]
+  }
+}
