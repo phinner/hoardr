@@ -152,10 +152,11 @@ function wrapFetch(publish: Publish) {
 
     const result = original.apply(this, args);
 
-    if (method === "GET")
-      void result
-        .then((response) => observeResponse(publish, response, startedOn))
-        .catch(() => {});
+    /* X pages its timelines with POST; observeResponse filters by
+       operation. */
+    void result
+      .then((response) => observeResponse(publish, response, startedOn))
+      .catch(() => {});
 
     if (request !== null && url !== null)
       void result
@@ -191,7 +192,7 @@ function wrapXhr(publish: Publish) {
     const request = requests.get(this);
     const [body] = args;
 
-    if (request?.method === "GET")
+    if (request)
       this.addEventListener(
         "load",
         () => {

@@ -1,4 +1,5 @@
 import { browser } from "wxt/browser";
+import { log } from "~/extension/diagnostics/log";
 import { requestBodyText } from "./mutation";
 import type { CaptureMessage } from "./parse";
 import {
@@ -7,6 +8,7 @@ import {
   isTwitterPage,
   isViewerMutation,
   MAX_BODY,
+  operationOf,
   withoutQuery,
 } from "./routes";
 
@@ -16,6 +18,7 @@ interface StreamFilter {
   ondata: ((event: { data: ArrayBuffer }) => void) | null;
   onstop: (() => void) | null;
   onerror: (() => void) | null;
+  readonly error?: string;
   write(data: ArrayBuffer): void;
   disconnect(): void;
 }
@@ -57,8 +60,16 @@ function observe(
   message: Message,
   publish: StreamPublish,
 ) {
+  const operation = operationOf(details.url);
   const documentUrl = details.documentUrl;
-  if (!documentUrl || !isTwitterPage(documentUrl)) return;
+  if (!documentUrl || !isTwitterPage(documentUrl)) {
+    log("stream.skipped", {
+      operation,
+      reason: "not-a-twitter-page",
+      documentUrl,
+    });
+    return;
+  }
 
   const filter = filterFor(details.requestId);
   const chunks: ArrayBuffer[] = [];
@@ -72,19 +83,29 @@ function observe(
 
   filter.onstop = () => {
     filter.disconnect();
-    if (bytes > MAX_BODY) return;
+    if (bytes > MAX_BODY) {
+      log("stream.skipped", { operation, reason: "too-large", bytes });
+      return;
+    }
 
     const body = new TextDecoder().decode(
       new Blob(chunks).size === bytes
         ? concat(chunks, bytes)
         : new Uint8Array(),
     );
-    if (!body.startsWith("{") && !body.startsWith("[")) return;
+    if (!body.startsWith("{") && !body.startsWith("[")) {
+      log("stream.skipped", { operation, reason: "not-json", bytes });
+      return;
+    }
 
+    log("stream.read", { operation, bytes });
     publish(message(body, withoutQuery(documentUrl)), documentUrl);
   };
 
-  filter.onerror = () => filter.disconnect();
+  filter.onerror = () => {
+    log("stream.failed", { operation, error: filter.error });
+    filter.disconnect();
+  };
 }
 
 function concat(chunks: ArrayBuffer[], bytes: number) {
@@ -157,6 +178,19 @@ export function installStreamCapture(publish: StreamPublish) {
       const request = requestBodies.get(details.requestId);
       requestBodies.delete(details.requestId);
 
+      /* Every GraphQL call is logged, so a renamed operation shows up as a
+         request that was seen but never read. */
+      const operation = operationOf(details.url);
+      if (operation !== undefined)
+        log("stream.request", {
+          operation,
+          method: details.method,
+          status: details.statusCode,
+          json: isJson(details),
+          tweetEndpoint: isTweetEndpoint(details.url),
+          tabId: details.tabId,
+        });
+
       if (
         details.tabId < 0 ||
         details.statusCode < 200 ||
@@ -165,7 +199,9 @@ export function installStreamCapture(publish: StreamPublish) {
       )
         return undefined;
 
-      if (details.method === "GET" && isTweetEndpoint(details.url))
+      /* X pages its timelines with POST, so the operation decides, not the
+         method. */
+      if (isTweetEndpoint(details.url))
         observe(details, response(details), publish);
 
       if (details.method === "POST" && request !== undefined)

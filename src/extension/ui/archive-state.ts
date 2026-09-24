@@ -1,5 +1,6 @@
 import { createSignal, onCleanup } from "solid-js";
 import { exportArchive, summary } from "~/extension/archive/store";
+import { exportDiagnostics } from "~/extension/diagnostics/log";
 import {
   readSettings,
   type Settings,
@@ -8,11 +9,11 @@ import {
 
 type Counts = Awaited<ReturnType<typeof summary>>;
 
-function download(blob: Blob) {
+function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `hoardr-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `${name}-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
@@ -46,11 +47,19 @@ export function createArchiveState() {
   const exportJson = async () => {
     setExporting(true);
     try {
-      download(await exportArchive());
+      download(await exportArchive(), "hoardr");
     } catch {
       setError("Could not export the local archive.");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const exportLogs = async () => {
+    try {
+      download(await exportDiagnostics(), "hoardr-logs");
+    } catch {
+      setError("Could not export the logs.");
     }
   };
 
@@ -73,6 +82,7 @@ export function createArchiveState() {
     toggleCapture: () =>
       void toggleCapture().catch(() => setError("Could not save the setting.")),
     exportJson: () => void exportJson(),
+    exportLogs: () => void exportLogs(),
     clearIssue: () => void clearIssue().catch(() => {}),
   };
 }

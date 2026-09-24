@@ -52,6 +52,9 @@ function Capture(props: { state: ArchiveState }) {
         >
           {props.state.exporting() ? "Exporting…" : "Export JSON"}
         </button>
+        <button type="button" class="outline" onClick={props.state.exportLogs}>
+          Export logs
+        </button>
       </div>
     </section>
   );

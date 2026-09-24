@@ -6,7 +6,9 @@ import {
   isCaptureMessage,
   parseCapture,
 } from "~/extension/capture/parse";
+import { operationOf } from "~/extension/capture/routes";
 import { installStreamCapture } from "~/extension/capture/stream";
+import { errorDetail, hasApiAccess, log } from "~/extension/diagnostics/log";
 import { readSetting, writeSettings } from "~/extension/sync/settings";
 import { syncAll } from "~/extension/sync/sync";
 
@@ -20,16 +22,41 @@ const scheduleSync = () => {
 };
 
 async function storeCapture(message: CaptureMessage, senderUrl: string) {
+  const context = {
+    kind: message.kind,
+    operation: operationOf(message.url),
+    page: message.page,
+  };
+
   try {
-    if (!(await readSetting("captureEnabled"))) return;
+    if (!(await readSetting("captureEnabled"))) {
+      log("capture.paused", context);
+      return;
+    }
 
     const capture = parseCapture(message, senderUrl, Date.now());
-    if (capture.posts.length === 0 && capture.viewerStates.length === 0) return;
+    if (capture.posts.length === 0 && capture.viewerStates.length === 0) {
+      /* The head of the body is enough to spot a changed response shape. */
+      log("capture.empty", {
+        ...context,
+        senderUrl,
+        bytes: message.body.length,
+        head: message.body.slice(0, 400),
+      });
+      return;
+    }
 
     const changed = await upsert(capture, message.page);
+    log("capture.stored", {
+      ...context,
+      posts: capture.posts.length,
+      viewerStates: capture.viewerStates.length,
+      changed,
+    });
     await writeSettings({ lastCaptureAt: Date.now() });
     if (changed > 0) scheduleSync();
-  } catch {
+  } catch (error) {
+    log("capture.failed", { ...context, ...errorDetail(error) });
     await writeSettings({
       lastIssue: "Some posts could not be saved. Reload the page to try again.",
     });
@@ -40,6 +67,13 @@ const createAlarm = () =>
   void browser.alarms.create(SYNC_ALARM, { periodInMinutes: 5 });
 
 export default defineBackground(() => {
+  void hasApiAccess().then((apiAccess) =>
+    log("background.started", {
+      version: browser.runtime.getManifest().version,
+      apiAccess,
+    }),
+  );
+
   browser.runtime.onInstalled.addListener(createAlarm);
   browser.runtime.onStartup.addListener(() => {
     createAlarm();
@@ -67,12 +101,12 @@ export default defineBackground(() => {
         return true;
       }
 
-      if (
-        sender.tab &&
-        sender.frameId === 0 &&
-        sender.url &&
-        isCaptureMessage(message)
-      ) {
+      if (sender.tab && sender.frameId === 0 && sender.url) {
+        if (!isCaptureMessage(message)) {
+          log("message.rejected", { senderUrl: sender.url });
+          return;
+        }
+
         void storeCapture(message, sender.url)
           .catch(() => {})
           .finally(() => sendResponse(null));

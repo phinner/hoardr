@@ -1,5 +1,6 @@
 import { viewerStatesOf } from "~/extension/archive/merge-viewer";
 import { ackPending, takePending } from "~/extension/archive/store";
+import { log } from "~/extension/diagnostics/log";
 import { api } from "./api";
 import { readSetting, readSettings, writeSettings } from "./settings";
 
@@ -89,5 +90,8 @@ let queue: Promise<unknown> = Promise.resolve();
 export function syncAll(force: boolean): Promise<SyncResult> {
   const run = queue.then(() => drain(force));
   queue = run;
+  void run.then((result) => {
+    if (result.kind !== "idle") log("sync.finished", { force, ...result });
+  });
   return run;
 }

@@ -70,7 +70,7 @@ export function isTwitterPage(url: string) {
   return parsed !== null && pageHosts.has(parsed.hostname);
 }
 
-function operationOf(url: string) {
+export function operationOf(url: string) {
   const parsed = parse(url);
   if (!parsed || !apiHosts.has(parsed.hostname)) return undefined;
 
