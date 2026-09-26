@@ -215,7 +215,13 @@ const makeImageOcr = Effect.gen(function* () {
       });
       const worker = yield* Effect.acquireRelease(
         Effect.tryPromise({
-          try: () => createWorker("eng", undefined, { cachePath }),
+          try: async () => {
+            const created = await createWorker("eng", undefined, { cachePath });
+            // Silences noisy per-line diagnostics. The path lives in the WASM
+            // virtual filesystem, so it works on any host OS.
+            await created.setParameters({ debug_file: "/dev/null" });
+            return created;
+          },
           catch: failure,
         }),
         (created) => Effect.promise(() => created.terminate()),
